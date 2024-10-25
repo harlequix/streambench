@@ -24,7 +24,7 @@ docker compose build
 ## Quick Start
 To quickly test Streambench, download the Big Buck Bunny Movie in ./examples (script is provided) and run the following command:
 ```sh
-docker compose run streambench /examples/bbb_sunflower_1080p_30fps_normal.mp4/results/bbb_30fps.csv 120 --output /results/bbb_30fps_copy.mp4
+docker compose run streambench /examples/bbb_sunflower_1080p_30fps_normal.mp4 /results/bbb_30fps.csv 120 --output /results/bbb_30fps_copy.mp4
 ```
 This will start the benchmarking process for the Big Buck Bunny video.
 
