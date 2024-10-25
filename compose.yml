@@ -1,0 +1,8 @@
+services:
+  streambench:
+    build: .
+    image: streambench
+    container_name: streambench
+    volumes:
+      - ./examples:/examples
+      - ./results:/results

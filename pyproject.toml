@@ -1,0 +1,11 @@
+[project]
+name = "streambench"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.7",
+    "loguru>=0.7.2",
+    "mpv>=1.0.7",
+]
