@@ -24,24 +24,23 @@ docker compose build
 ## Quick Start
 To quickly test Streambench, download the Big Buck Bunny Movie in ./examples (script is provided) and run the following command:
 ```sh
-docker compose run streambench /examples/bbb_sunflower_1080p_30fps_normal.mp4 /results/bbb_30fps.csv 120 --output /results/bbb_30fps_copy.mp4
+docker compose run streambench --media /examples/bbb_sunflower_1080p_30fps_normal.mp4 --csv /results/bbb_30fps.csv --recording /results/bbb_30fps_copy.mp4
 ```
-This will start the benchmarking process for the Big Buck Bunny video.
+This will start the benchmarking process for the (local) Big Buck Bunny video.
 
 ## General Usage
 Streambench requires the following parameters:
 ```sh
 docker compose run streambench <playback_file> <csv_output> <timeout>
 ```
-- `<playback_file>`: This can be any file that MPV can play back.
-- `<csv_output>`: Output path for the timing information.
-- `<timeout>`: Maximum time that Streambench should record the playback in seconds.
+- `--media`: This can be any file that MPV can play back.
+- `--csv`: Output path for the timing information.
+- `--recording`: This utilizes MPV to record the played back media for later analysis.
+
 
 Optional parameter:
-```sh
---output <recording_path>
-```
-This utilizes MPV to record the played back media for later analysis.
+- `--playbook`: utilizes a playbook (see playbook generation)
+- `--mapping`: defines the mapping between ID's in a playbook and port used for RTP transmission. Expected is a `ID:Port` mapping, e.g. `0:5004` sends playbook ID 0 to port 5004
 
 ## Playback of RTP
 Since the playback can be anything that MPV can play back, Streambench can also be used to benchmark RTP playbacks. To achieve that, follow these steps:
@@ -49,6 +48,11 @@ Since the playback can be anything that MPV can play back, Streambench can also 
 1. Create a valid SDP file that describes the RTP session.
 2. Edit the `compose.yml` to open/forward the corresponding ports to the Streambench container.
 3. Run Streambench with the SDP file as input.
+
+## Playbook creation
+
+Playbook creation is done via the preprocessing container provided by `compose.yml`.
+`docker compose preprocess <path to media file> <path to playbook output>` creates both a playbook and a valid sdp file in the defined location.
 
 ## Contributing
 We welcome contributions! Please read our [contributing guidelines](CONTRIBUTING.md) for more details.

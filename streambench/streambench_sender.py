@@ -11,43 +11,7 @@ import json
 
 # s.sendto(file_name,addr)
 
-def sleepTimer(x):
-    while (x > -1):
-        time.sleep(1)
-        print(x)
-        x -= 1
 
-def sendWithoutPlaybook(file_path, addr, buffersize):   #Very simple sender
-    x = input("Do you want to use bulk sending? If no continous sending is going to be done [y/n]")
-    bulk_flag = (x==('y' or 'j' or 'yes' or 'ja' or 'Y' or 'J' or 'YES' or 'JA' or'b' or 'bulk' or 'B' or 'BULK' or 'Bulk'))
-
-    f = open(file_path, "rb")
-    data = f.read(buffersize)  #
-    counter = 0
-    x = input("Do you want missing packages? [y/n]")
-    if x==('y' or 'j' or 'yes' or 'ja' or 'Y' or 'J' or 'YES' or 'JA'):
-        while (data):
-            if(s.sendto(data,addr)):
-                if(print_flag): print ("sending ..." + str(counter))
-                counter += 1
-                data = f.read(buffersize)
-                if(not bulk_flag):time.sleep(0.0035)  #currently this is neccesary because mpv is shuting down when the sending process is finished
-                if (counter - 500 > 0 and counter%250 == 0):
-                    data= f.read(buffersize)
-                    print("The void has devoured packet No." + str(counter))
-                    counter += 1
-    else:
-
-        while (data):
-            if(s.sendto(data,addr)):
-                if(print_flag): print ("sending ..." + str(counter))
-                counter += 1
-                data = f.read(buffersize)
-                if(not bulk_flag):time.sleep(0.0035)  #currently this is neccesary because mpv is shuting down when the sending process is finished
-
-    print("Finished Sending")
-    s.close()
-    f.close()
 
 
 def sendWithPlaybook(playbook_path, targets, buffersize, args):

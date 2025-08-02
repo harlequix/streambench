@@ -12,6 +12,16 @@ import sys
 
 
 @dataclass
+class MPVOpts:
+    rtsp_transport: str = 'udp'
+    # untimed: bool = True
+    cache: str = 'no'
+    profile: str = 'low-latency'
+    # demuxer_max_bytes: str = "0"
+    # demuxer_max_back_bytes: str = "0"
+    # demuxer_readahead_secs: str = "0"
+
+@dataclass
 class Frame:
     num: int
     frametime: float
@@ -33,7 +43,7 @@ class RecordingContext:
     
 
 class Receiver:
-    def __init__(self, sdp, csv, recording, loglevel='debug'):
+    def __init__(self, sdp, csv, recording,shutdown_event, loglevel='info'):
         self.recording = recording
         self.loop = False
         self.logfile = None
@@ -41,6 +51,7 @@ class Receiver:
         self.sdp = sdp
         self.csv = csv
         self.loglevel = loglevel
+        self.done = shutdown_event
         logger.remove()
         logger.add(sys.stderr, level=self.loglevel.upper())
 
@@ -55,7 +66,12 @@ class Receiver:
     
     def start(self):
         logger.info("Starting receiver")
-        player = mpv.MPV(loop=self.loop, ytdl=True, log_handler=functools.partial(Receiver._mpv_log_handler, self), loglevel='debug', stream_record=self.recording)
+        selfopts = {}
+        if self.recording:
+            selfopts['stream_record'] = self.recording
+            logger.info(f"Recording to {self.recording}")
+        opts = MPVOpts().__dict__
+        player = mpv.MPV(loop=self.loop, ytdl=True, log_handler=functools.partial(Receiver._mpv_log_handler, self), loglevel='debug', **selfopts, **opts)
         self.duration = int(self.duration)
         frames = queue.SimpleQueue()
         
@@ -66,7 +82,7 @@ class Receiver:
         
         mpv_ctx = mpv.MpvRenderContext(player, 'sw')
         rec_ctx = RecordingContext(self.duration, flush_to_disk, playback_finished, has_started, heartbeat, mpv_ctx, player, frames)
-        mpv_ctx.update_callback = functools.partial(frame_ready,rec_ctx)
+        mpv_ctx.update_cb = functools.partial(frame_ready,rec_ctx)
         
         t_writer = threading.Thread(target=writer, args=(frames, self.csv, playback_finished))
         t_deadlock = threading.Thread(target=trapdoor, args=(has_started, playback_finished, False))
@@ -77,25 +93,71 @@ class Receiver:
         t_stuck.start()
 
         player.play(self.sdp)
-        playback_finished.wait()
+        while not self.done.is_set():
+            if not has_started.is_set():
+                time.sleep(0.1)
+                continue
+            
+            if flush_to_disk.is_set():
+                logger.info("Flushing frames to disk")
+                flush_to_disk.clear()
+                t_writer.join()
+                logger.info("Flushed frames to disk")
+            
+            if playback_finished.is_set():
+                logger.info("Playback finished, exiting")
+                breakc
+            time.sleep(0.1)
+        logger.info("Shutting down receiver")
+        # playback_finished.wait()
         
         
 def frame_ready(context):
+    # logger.debug(f"Frame ready: {context.frame_num}")
+    current_time = time.time()
+    if context.last_frame is not None:
+        timestamp = current_time - context.start_time
+        # print(f"Timestamp: {timestamp}")
+        time_since_last_frame = timestamp - context.last_frame
+    else:
+        context.start_time = current_time
+        timestamp = 0
+        time_since_last_frame = 0
+        logger.info("Starting recording")
+        context.signal_has_started.set()
+    
+    frame = Frame(context.frame_num, time_since_last_frame, timestamp)
+    # logger.debug(f"Frame: {frame}")
+    context.frame_queue.put(frame)
+    # logger.debug("Frame put in queue")
+    context.signal_heartbeat.set()
+    if frame.timestamp > context.duration:
+            logger.info("Recording finished")
+            context.signal_flush_to_disk.set()
+            context.signal_playback_finished.set()
+            context.player.quit()
+
+    context.last_frame = timestamp
+    context.frame_num += 1
+    context.mpv_ctx.render(skip_rendering=True, block_for_target_time=False)
+
+def frame_ready_fast(context):
     logger.debug(f"Frame ready: {context.frame_num}")
     current_time = time.time()
     if context.last_frame is not None:
-        t0 = current_time
-        time_since_last_frame = current_time - context.last_frame.timestamp
+        timestamp = current_time - context.start_time
+        time_since_last_frame = timestamp - context.last_frame.timestamp
     else:
-        t0 = current_time
+        context.start_time = current_time
+        timestamp = 0
         time_since_last_frame = 0
-        logger.debug("Starting recording")
+        logger.info("Starting recording")
         context.signal_has_started.set()
     
-    frame = Frame(context.frame_num, time_since_last_frame, current_time - t0)
+    frame = Frame(context.frame_num, time_since_last_frame, timestamp)
     logger.debug(f"Frame: {frame}")
     context.frame_queue.put(frame)
-    logger.debug("Frame put in queue")
+    # logger.debug("Frame put in queue")
     context.signal_heartbeat.set()
     if frame.timestamp > context.duration:
             logger.info("Recording finished")
@@ -105,7 +167,8 @@ def frame_ready(context):
 
     context.last_frame = frame
     context.frame_num += 1
-    # context.mpv_ctx.render(skip_rendering=True, block_for_target_time=False)
+    context.mpv_ctx.render(skip_rendering=True, block_for_target_time=False)
+
 
 
         

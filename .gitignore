@@ -10,3 +10,6 @@ wheels/
 .venv
 results
 examples/*.mp4
+*.sdp
+*.json
+*.csv

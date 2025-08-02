@@ -55,7 +55,6 @@ def frametimer(filename, loop, logfile, duration, output):
     last_time_update = 0
     
     def frame_ready():
-        # print("Frame ready")
         nonlocal frame_num, last_frame_time, ctx, t0, frames, p, pb, active
         current_time = time.time()
         if last_frame_time is not None:
@@ -83,15 +82,13 @@ def frametimer(filename, loop, logfile, duration, output):
 
     ctx = mpv.MpvRenderContext(p, 'sw')
     ctx.update_cb = frame_ready
+
     p.play(filename)
     # p.wait_for_playback()
     pb.wait()
     # p.terminate()
     print('Exiting.')
     os.system('kill %d' % os.getpid())
-
-
-
 
 def writer(queue, file, done):
     with open(file, 'w+') as f:
@@ -109,8 +106,9 @@ def writer(queue, file, done):
             # print(f'Writing {frame}')
             f.flush()
 
-def trapdoor(event1, event2, reset, timeout=120):
-    time.sleep(timeout)
+
+def trapdoor(event1, event2, reset):
+    time.sleep(120)
     if not event1.is_set():
         print("Nothing is happening, trigger exit")
         event2.set()

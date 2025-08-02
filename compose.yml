@@ -3,6 +3,16 @@ services:
     build: .
     image: streambench
     container_name: streambench
+    network_mode: host
     volumes:
       - ./examples:/examples
       - ./results:/results
+  preprocess:
+    build: .
+    image: preprocess
+    container_name: preprocess
+    volumes:
+      - ./examples:/examples
+      - ./results:/results
+    working_dir: /app/utils/udp
+    entrypoint: ./gen_playbook.sh
