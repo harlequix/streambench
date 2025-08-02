@@ -16,7 +16,7 @@ class MPVOpts:
     rtsp_transport: str = 'udp'
     # untimed: bool = True
     cache: str = 'no'
-    profile: str = 'low-latency'
+    # profile: str = 'low-latency'
     # demuxer_max_bytes: str = "0"
     # demuxer_max_back_bytes: str = "0"
     # demuxer_readahead_secs: str = "0"
@@ -106,14 +106,19 @@ class Receiver:
             
             if playback_finished.is_set():
                 logger.info("Playback finished, exiting")
-                breakc
+                break
             time.sleep(0.1)
+        logger.debug("Shutting down receiver")
+        player.terminate()
+        playback_finished.set()
+        logger.debug("Waiting for writer to finish")
+        t_writer.join()
         logger.info("Shutting down receiver")
         # playback_finished.wait()
         
         
 def frame_ready(context):
-    # logger.debug(f"Frame ready: {context.frame_num}")
+    logger.debug(f"Frame ready: {context.frame_num}")
     current_time = time.time()
     if context.last_frame is not None:
         timestamp = current_time - context.start_time
@@ -135,7 +140,7 @@ def frame_ready(context):
             logger.info("Recording finished")
             context.signal_flush_to_disk.set()
             context.signal_playback_finished.set()
-            context.player.quit()
+            context.player.terminate()
 
     context.last_frame = timestamp
     context.frame_num += 1
