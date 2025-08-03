@@ -109,6 +109,7 @@ class Receiver:
                 break
             time.sleep(0.1)
         logger.debug("Shutting down receiver")
+        player.stream_record = ''
         player.terminate()
         playback_finished.set()
         logger.debug("Waiting for writer to finish")
@@ -138,9 +139,10 @@ def frame_ready(context):
     context.signal_heartbeat.set()
     if frame.timestamp > context.duration:
             logger.info("Recording finished")
+            context.player.stream_record = ''
             context.signal_flush_to_disk.set()
             context.signal_playback_finished.set()
-            context.player.terminate()
+            context.player.stop()
 
     context.last_frame = timestamp
     context.frame_num += 1

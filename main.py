@@ -24,6 +24,7 @@ def receive(media, csv, recording=None, loglevel="info"):
         
     signal.signal(signal.SIGTERM, handle_sigterm)
     signal.signal(signal.SIGINT, handle_sigterm)
+    signal.signal(signal.SIGHUP, handle_sigterm)
 
     receiver = streambench.Receiver(media, csv, recording, shutdown_event, loglevel)
     receiver.start()
